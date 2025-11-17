@@ -142,6 +142,25 @@
       <div style="margin-top:8px"><strong>History (last 5):</strong><div id="historyList" style="margin-top:6px"></div></div>
      `;
     wrap.appendChild(controls);
+
+    const modal = document.createElement('div');
+    modal.id = 'resultModal';
+    Object.assign(modal.style, {
+      position: 'fixed', left: 0, top: 0, right: 0,
+      bottom: 0, display: 'none', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.6)'
+    });
+    modal.innerHTML = `<div class="panel" style="min-width:280px;text-align:center">
+    <h3 id="resultTitle">Game over</h3>
+    <div id="resultText"></div>
+    <div style="margin-top:10px">
+    <button id="playAgainBtn">Play again</button>
+     <button id="toMenuBtn" class="ghost">Menu</button>
+     </div>
+     </div>`;
+    document.body.appendChild(modal);
+
+    
   }
   createUI();
 })()
