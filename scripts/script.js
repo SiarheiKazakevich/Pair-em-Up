@@ -25,7 +25,7 @@
     savedAt: null,
   };
   const randInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
-  const usid = (() => { let i = 0; return () => ++i })();
+  const uid = (() => { let i = 0; return () => ++i })();
   /* ------Dom----------*/
   let els = {};
   function createUI() {
@@ -266,6 +266,7 @@
 
   /*--------выбор пар---------------- */
   function onCellClick(idx) {
+    const cell = state.grid[idx];
     if (!cell || cell.value === null) return;
     if (selected.includes(idx)) {
       selected = selected.filter(x => x !== idx);
@@ -366,6 +367,81 @@
     state.score += points;
 
   }
+function countAvailableMoves( cap = Infinity){
+  let count = 0;
+  const n = state.grid.length;
+  for(let i = 0; i < n; i++){
+    if(state.grid[i].value === null) continue;
+    for(let j = i + 1; j < n; j++){
+      if(state.grid[j].value === null) continue;
+      const valCheck = (() => {
+        const va = state.grid[i].value, vb = state.grid[j].value;
+        if(va === vb) return true;
+        if(va + vb === 10) return true;
+        return false;
+      })();
+      if(!valCheck) continue;
+      const path = isPairValid(i, j);
+      if(path){
+        count++;
+        if(count >= cap) return count;
+      }
+    }
+  }
+  return count;
+}
+
+function showHint(){
+  const n = state.grid.length;
+  for(let i = 0; i < n; i++){
+    if (state.grid[i].value === null) continue;
+      for (let j = i + 1; j < n; j++) {
+        if (state.grid[j].value === null) continue;
+        const valCheck = (() => {
+          const va = state.grid[i].value, vb = state.grid[j].value;
+          if (va === vb) return true;
+          if (va + vb === 10) return true;
+          return false;
+        })();
+        if(!valCheck) continue;
+        const path = isPairValid(i, j);
+        if(path){
+          selected = [i, j];
+          renderGrid();
+          setTimeout(() => { selected = []; renderGrid(); }, 900);
+          return;
+        }
+  }
+}
+
+function showToast(msg) {
+  const div = document.createElement('div');
+  div.textContent = msg;
+  div.style.position = 'fixed';
+  div.style.bottom = '20px';
+  div.style.left = '50%';
+  div.style.transform = 'translateX(-50%)';
+  div.style.background = 'var(--accent)';
+  div.style.color = '#000';
+  div.style.padding = '8px 14px';
+  div.style.borderRadius = '8px';
+  div.style.fontWeight = '600';
+  div.style.zIndex = '9999';
+  div.style.opacity = '0';
+  div.style.transition = 'opacity .3s';
+
+  document.body.appendChild(div);
+  requestAnimationFrame(() => (div.style.opacity = '1'));
+
+  setTimeout(() => {
+    div.style.opacity = '0';
+    setTimeout(() => div.remove(), 300);
+  }, 1500);
+
+}
+showToast('No available moves found.');
+}
+
 
   createUI();
 })()
