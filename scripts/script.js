@@ -205,5 +205,35 @@
 
     window.addEventListener('resize', renderGrid);
   }
+
+
+  function generateInitialArray(mode){
+   const arr = [];
+   if(mode === 'classic'){
+    const seq = [];
+    for(let i = 1; i <= 19; i++) if (i !== 0) seq.push(i);
+    let base = [];
+    for(let i = 1; i <= 19; i++) base.push(i);
+    while(base.length < START_COUNT){
+      for(let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
+    }
+    for(const v of base.slice(0, START_COUNT)) arr.push(v)
+   }else if(mode === 'random'){
+    let base = [];
+    for(let i = 1; i <= 19; i++) base.push(i);
+    while(base.length < START_COUNT){
+      for(let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
+    }
+    //shuffle
+    for(let i = base.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [base[i], base[j]] = [base[j], base[i]];
+    }
+  }
+
+
+  }
+
+
   createUI();
 })()
