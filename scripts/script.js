@@ -367,34 +367,11 @@
     state.score += points;
 
   }
-function countAvailableMoves( cap = Infinity){
-  let count = 0;
-  const n = state.grid.length;
-  for(let i = 0; i < n; i++){
-    if(state.grid[i].value === null) continue;
-    for(let j = i + 1; j < n; j++){
-      if(state.grid[j].value === null) continue;
-      const valCheck = (() => {
-        const va = state.grid[i].value, vb = state.grid[j].value;
-        if(va === vb) return true;
-        if(va + vb === 10) return true;
-        return false;
-      })();
-      if(!valCheck) continue;
-      const path = isPairValid(i, j);
-      if(path){
-        count++;
-        if(count >= cap) return count;
-      }
-    }
-  }
-  return count;
-}
-
-function showHint(){
-  const n = state.grid.length;
-  for(let i = 0; i < n; i++){
-    if (state.grid[i].value === null) continue;
+  function countAvailableMoves(cap = Infinity) {
+    let count = 0;
+    const n = state.grid.length;
+    for (let i = 0; i < n; i++) {
+      if (state.grid[i].value === null) continue;
       for (let j = i + 1; j < n; j++) {
         if (state.grid[j].value === null) continue;
         const valCheck = (() => {
@@ -403,44 +380,199 @@ function showHint(){
           if (va + vb === 10) return true;
           return false;
         })();
-        if(!valCheck) continue;
+        if (!valCheck) continue;
         const path = isPairValid(i, j);
-        if(path){
+        if (path) {
+          count++;
+          if (count >= cap) return count;
+        }
+      }
+    }
+    return count;
+  }
+
+  function showHint() {
+    const n = state.grid.length;
+    for (let i = 0; i < n; i++) {
+      if (state.grid[i].value === null) continue;
+      for (let j = i + 1; j < n; j++) {
+        if (state.grid[j].value === null) continue;
+        const valCheck = (() => {
+          const va = state.grid[i].value, vb = state.grid[j].value;
+          if (va === vb) return true;
+          if (va + vb === 10) return true;
+          return false;
+        })();
+        if (!valCheck) continue;
+        const path = isPairValid(i, j);
+        if (path) {
           selected = [i, j];
           renderGrid();
           setTimeout(() => { selected = []; renderGrid(); }, 900);
           return;
         }
+      }
+    }
+
+    function showToast(msg) {
+      const div = document.createElement('div');
+      div.textContent = msg;
+      div.style.position = 'fixed';
+      div.style.bottom = '20px';
+      div.style.left = '50%';
+      div.style.transform = 'translateX(-50%)';
+      div.style.background = 'var(--accent)';
+      div.style.color = '#000';
+      div.style.padding = '8px 14px';
+      div.style.borderRadius = '8px';
+      div.style.fontWeight = '600';
+      div.style.zIndex = '9999';
+      div.style.opacity = '0';
+      div.style.transition = 'opacity .3s';
+
+      document.body.appendChild(div);
+      requestAnimationFrame(() => (div.style.opacity = '1'));
+
+      setTimeout(() => {
+        div.style.opacity = '0';
+        setTimeout(() => div.remove(), 300);
+      }, 1500);
+
+    }
+    showToast('No available moves found.');
   }
-}
+  function snapshotState(summary) {
+    const snap = {
+      grid: state.grid.map(c => ({ value: c.value, id: c.id })),
+      score: state.score,
+      movesCount: state.movesCount,
+      tools: JSON.parse(JSON.stringify(state.tools)),
+      elapsedSeconds: state.elapsedSeconds,
+      summary
+    };
+    return snap;
+  }
 
-function showToast(msg) {
-  const div = document.createElement('div');
-  div.textContent = msg;
-  div.style.position = 'fixed';
-  div.style.bottom = '20px';
-  div.style.left = '50%';
-  div.style.transform = 'translateX(-50%)';
-  div.style.background = 'var(--accent)';
-  div.style.color = '#000';
-  div.style.padding = '8px 14px';
-  div.style.borderRadius = '8px';
-  div.style.fontWeight = '600';
-  div.style.zIndex = '9999';
-  div.style.opacity = '0';
-  div.style.transition = 'opacity .3s';
+  function pushHistory(summary) {
+    state.history.push(snapshotState(summary));
+    if (state.history.length > 200) state.history.shift();
+  }
+  function undoMove() {
+    if (state.history.length === 0) { showToast('Nothing to undo'); return; }
+    const last = state.history.pop();
+    state.grid = last.grid.map(c => ({ value: c.value, id: c.id || uid() }));
+    state.score = last.score;
+    state.movesCount = last.movesCount;
+    state.tools = last.tools;
+    state.elapsedSeconds = last.elapsedSeconds;
+    selected = [];
+    saveToStorageAuto();
+    renderGrid();
+  }
+  function addNumbersTool() {
+    if (state.tools.add >= MAX_ADD_NUMBERS) { showToast('Add Numbers: no usages left'); return; }
+    pushHistory('add numbers');
+    const currentCount = state.grid.filter(c => c.value !== null).length;
+    const toAdd = (() => {
+      if (state.mode === 'classic') {
+        return 1;
+      } else if (state.mode === 'random') {
+        return 1;
+      } else {
+        return 1;
+      }
+    })();
+    for (let k = 0; k < toAdd; k++) {
+      let v;
+      if (state.mode === 'chaotic') v = randInt(1, 9);
+      else if (state.mode === 'random') {
 
-  document.body.appendChild(div);
-  requestAnimationFrame(() => (div.style.opacity = '1'));
+        v = randInt(1, 19);
+        if (v === 0) v = 1;
+      } else {
+        v = randInt(1, 19);
+      }
+      state.grid.push({ value: v, id: uid() });
+    }
+    state.tools.addUsed += 1;
 
-  setTimeout(() => {
-    div.style.opacity = '0';
-    setTimeout(() => div.remove(), 300);
-  }, 1500);
+    const rows = Math.ceil(state.grid.length / COLS);
+    if (rows > MAX_LINES) {
+      endGame(false, `Grid limit exceeded (${rows} rows).`);
+      return;
+    }
+    saveToStorageAuto();
+    renderGrid();
+  }
+  function shuffleTool() {
+    if (state.tools.shuffleUsed >= MAX_SHUFFLES) { showToast('Shuffle: no usages left'); return; }
+    pushHistory('shuffle');
+    const value = state.grid.map(c => c.value);
+    const valuesToShuffle = values.filter(v => v !== null);
+    for (let i = valuesToShuffle.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [valuesToShuffle[i], valuesToShuffle[j]] = [valuesToShuffle[j], valuesToShuffle[i]];
+    }
+    let idx = 0;
+    for (let i = 0; i < state.grid.length; i++) {
+      if (state.grid[i].value !== null) {
+        state.grid[i].value = valuesToShuffle[idx++];
+      }
+    }
+    state.tools.shuffleUsed += 1;
+    saveToStorageAuto();
+    renderGrid();
+  }
+  function askIndexWithToast(callback) {
+    showToast('Enter cell index to erase');
 
-}
-showToast('No available moves found.');
-}
+    const box = document.createElement('div');
+    box.style.position = 'fixed';
+    box.style.bottom = '20px';
+    box.style.left = '50%';
+    box.style.transform = 'translateX(-50%)';
+    box.style.background = 'var(--card)';
+    box.style.padding = '10px 14px';
+    box.style.borderRadius = '10px';
+    box.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+    box.style.zIndex = 9999;
+
+    box.innerHTML = `
+    <div style="margin-bottom:6px;color:var(--text)">Index:</div>
+    <input id="toastInput" type="number" style="padding:6px;width:140px">
+  `;
+
+    document.body.appendChild(box);
+
+    const input = box.querySelector('#toastInput');
+    input.focus();
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = Number(input.value);
+        box.remove();
+        callback(val);
+      }
+    });
+  }
+  function eraserTool() {
+    if (state.tools.eraserUsed >= MAX_ERASER) { showToast('Eraser: no usages left'); return; }
+    const indexStr = askIndexWithToast((index) => {
+      eraseCell(index);
+    });
+    if (indexStr === null) return;
+    const idx = parseInt(indexStr, 10);
+    if (isNaN(idx) || idx < 0 || idx >= state.grid.length) { showToast('Invalid index'); return; }
+    if (state.grid[idx].value === null) { showToast('Cell is already empty'); return; }
+    pushHistory('eraser');
+    state.grid[idx].value = null;
+    state.tools.eraserUsed += 1;
+    saveToStorageAuto();
+    renderGrid();
+    checkGameEnd();
+  }
+
+
 
 
   createUI();
