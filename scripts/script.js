@@ -264,9 +264,108 @@
     els.historyList.innerHTML = hist.map((h, idx) => `<div style="font-size:12px">#${hist.length - idx}: ${h.summary || 'move'}</div>`).join('');
   }
 
+  /*--------выбор пар---------------- */
+  function onCellClick(idx) {
+    if (!cell || cell.value === null) return;
+    if (selected.includes(idx)) {
+      selected = selected.filter(x => x !== idx);
+      renderGrid();
+      return;
+    }
+    if (selected.length === 0) {
+      selected.push(idx);
+      renderGrid();
+      return;
+    }
+    if (selected.length === 1) {
+      selected.push(idx);
+      const [a, b] = selected;
+      const valid = isPairValid(a, b);
+      if (valid) {
+        pushHistory(`remove ${state.grid[a].value} & ${state.grid[b].value}`);
+        applyPairRemoval(a, b, valid.points);
+        state.movesCount += 1;
+        saveToStorageAuto();
+        selected = [];
+        renderGrid();
 
+      } else {
+        flashInvalid(a, b);
+        selected = [];
+        renderGrid();
+      }
+      return;
+    }
+  }
+  function flashInvalid(a, b) {
+    const nodes = Array.from(els.board.children);
+    const nodeA = nodes[a], nodeB = nodes[b];
+    if (nodeA) nodeA.style.transform = 'scale(0.98)';
+    if (nodeB) nodeB.style.transform = 'scale(0.98)';
+    setTimeout(() => { if (nodeA) nodeA.style.transform = ''; if (nodeB) nodeB.style.transform = ''; }, 150);
+  }
+  function isPairValid(idxA, idxB) {
+    if (idxA === idxB) return false;
+    const a = state.grid[idxA], b = state.grid[idxB];
+    if (!a || !b || a.value === null || b.value === null) return false;
+    const vA = a.value, vB = b.value;
 
+    let points = 0;
+    if (vA === vB) {
+      points = (vA === 5 ? 3 : 1);
+    } else if (vA + vB === 10) {
+      points = 2;
+    } else return false;
+    if (areNeighbors(idxA, idxB)) return { valid: true, points };
 
+    const posA = indexToRC(idxA), posB = indexToRC(idxB);
+    if (posA.row === posB.row) {
+
+      const c1 = Math.min(posA.col, posB.col), c2 = Math.max(posA.col, posB.col);
+      let clear = true;
+      for (let c = c1 + 1; c < c2; c++) {
+        const idx = rcToIndex(posA.row, c);
+        if (idx < state.grid.length && state.grid[idx] && state.grid[idx].value !== null) { clear = false; break; }
+      }
+      if (clear) return { valid: true, points };
+    }
+
+    if (posA.col === posB.col) {
+      const r1 = Math.min(posA.row, posB.row), r2 = Math.max(posA.row, posB.row);
+      let clear = true;
+      for (let r = r1 + 1; r < r2; r++) {
+        const idx = rcToIndex(r, posA.col);
+        if (idx < state.grid.length && state.grid[idx] && state.grid[idx].value !== null) { clear = false; break; }
+      }
+      if (clear) return { valid: true, points };
+    }
+    return false;
+  }
+  function areNeighbors(i, j) {
+    const a = indexToRC(i), b = indexToRC(j);
+
+    if (a.row === b.row && Math.abs(a.col - b.col) === 1) return true;
+    if (a.col === b.col && Math.abs(a.row - b.row) === 1) return true;
+
+    if (a.col === COLS - 1 && b.col === 0 && b.row === a.row + 1) return true;
+    if (b.col === COLS - 1 && a.col === 0 && a.row === b.row + 1) return true;
+    return false;
+  }
+
+  function indexToRC(idx) {
+    return { row: Math.floor(idx / COLS), col: idx % COLS };
+  }
+  function rcToIndex(row, col) {
+    return row * COLS + col;
+  }
+
+  function applyPairRemoval(i, j, points) {
+    pushHistory();
+    state.grid[i].value = null;
+    state.grid[j].value = null;
+    state.score += points;
+
+  }
 
   createUI();
 })()
