@@ -207,32 +207,65 @@
   }
 
 
-  function generateInitialArray(mode){
-   const arr = [];
-   if(mode === 'classic'){
-    const seq = [];
-    for(let i = 1; i <= 19; i++) if (i !== 0) seq.push(i);
-    let base = [];
-    for(let i = 1; i <= 19; i++) base.push(i);
-    while(base.length < START_COUNT){
-      for(let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
+  function generateInitialArray(mode) {
+    const arr = [];
+    if (mode === 'classic') {
+      const seq = [];
+      for (let i = 1; i <= 19; i++) if (i !== 0) seq.push(i);
+      let base = [];
+      for (let i = 1; i <= 19; i++) base.push(i);
+      while (base.length < START_COUNT) {
+        for (let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
+      }
+      for (const v of base.slice(0, START_COUNT)) arr.push(v)
+    } else if (mode === 'random') {
+      let base = [];
+      for (let i = 1; i <= 19; i++) base.push(i);
+      while (base.length < START_COUNT) {
+        for (let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
+      }
+      //shuffle
+      for (let i = base.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [base[i], base[j]] = [base[j], base[i]];
+      }
+      arr.push(...base.slice(0, START_COUNT));
+    } else if (mode === 'chaotic') {
+      for (let i = 0; i < START_COUNT; i++) arr.push(randInt(1, 9));
     }
-    for(const v of base.slice(0, START_COUNT)) arr.push(v)
-   }else if(mode === 'random'){
-    let base = [];
-    for(let i = 1; i <= 19; i++) base.push(i);
-    while(base.length < START_COUNT){
-      for(let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
+    return arr;
+  }
+
+  function initGridFromArray(arr) {
+    state.grid = arr.map(v => ({ value: v, id: uid() }));
+  }
+
+  /*------рендеринг--------*/
+  let selected = [];
+  function renderGrid() {
+    const board = els.board;
+    board.innerHTML = '';
+    for (let i = 0; i < state.grid.length; i++) {
+      const cell = state.grid[i];
+      const el = document.createElement('div');
+      el.className = 'cell' + (cell.value === null ? ' empty' : '');
+      el.dataset.idx = i;
+      if (cell.value !== null) el.textContent = String(cell.value);
+      if (selected.includes(i)) el.classList.add('selected');
+      el.addEventListener('click', () => onCellClick(i));
+      board.appendChild(el);
     }
-    //shuffle
-    for(let i = base.length - 1; i > 0; i--){
-      const j = Math.floor(Math.random() * (i + 1));
-      [base[i], base[j]] = [base[j], base[i]];
-    }
+    const moves = countAvailableMoves(6);
+    els.availableMoves.textContent = moves >= 6 ? '5+' : String(moves);
+    els.modeInfo.textContent = `Mode: ${state.mode}`;
+    els.score.textContent = `Score: ${state.score} / ${TARGET_SCORE}`;
+
+    const hist = state.history.slice(-5).reverse();
+    els.historyList.innerHTML = hist.map((h, idx) => `<div style="font-size:12px">#${hist.length - idx}: ${h.summary || 'move'}</div>`).join('');
   }
 
 
-  }
+
 
 
   createUI();
