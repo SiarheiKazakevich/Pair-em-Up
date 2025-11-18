@@ -17,7 +17,7 @@
     timerInterval: null,
     tools: {
       addUsed: 0,
-      shaffleUsed: 0,
+      shuffleUsed: 0,
       eraserUsed: 0,
     },
     history: [],
@@ -56,6 +56,7 @@
         .controls{min-width:unset;width:100%}
         .board{order:2;width:100%}
         .board-wrap{flex-direction:column}
+  }
     `
     document.head.appendChild(style);
     const app = document.createElement('div');
@@ -160,7 +161,49 @@
      </div>`;
     document.body.appendChild(modal);
 
-    
+    //доб. элем.
+    els = {
+      board, modeInfo: document.getElementById('mode-info'),
+      score: document.getElementById('score'),
+      timer: document.getElementById('timer'),
+      btnClassic: document.getElementById('btnClassic'),
+      btnRandom: document.getElementById('btnRandom'),
+      btnChaotic: document.getElementById('btnChaotic'),
+      resetBtn: document.getElementById('resetBtn'),
+      continueBtn: document.getElementById('continueBtn'),
+      saveBtn: document.getElementById('saveBtn'),
+      hintBtn: document.getElementById('hintBtn'),
+      undoBtn: document.getElementById('undoBtn'),
+      addBtn: document.getElementById('addBtn'),
+      shuffleBtn: document.getElementById('shuffleBtn'),
+      eraserBtn: document.getElementById('eraserBtn'),
+      availableMoves: document.getElementById('availableMoves'),
+      historyList: document.getElementById('historyList'),
+      resultModal: modal,
+      resultTitle: modal.querySelector('#resultTitle'),
+      resultText: modal.querySelector('#resultText'),
+      playAgainBtn: modal.querySelector('#playAgainBtn'),
+      toMenuBtn: modal.querySelector('#toMenuBtn'),
+      ghLink: document.getElementById('gh-link'),
+
+    };
+    els.ghLink.href = 'https://github.com/SiarheiKazakevich';
+    els.ghLink.textContent = 'SiarheiKazakevich';
+
+    els.btnClassic.addEventListener('click', () => startNew('classic'));
+    els.btnRandom.addEventListener('click', () => startNew('random'));
+    els.btnChaotic.addEventListener('click', () => startNew('chaotic'));
+    els.resetBtn.addEventListener('click', () => startNew(state.mode));
+    els.saveBtn.addEventListener('click', saveToStorage);
+    els.hintBtn.addEventListener('click', showHint);
+    els.undoBtn.addEventListener('click', undoMove);
+    els.addBtn.addEventListener('click', addNumbersTool);
+    els.shuffleBtn.addEventListener('click', shuffleTool);
+    els.eraserBtn.addEventListener('click', eraserTool);
+    els.playAgainBtn.addEventListener('click', () => { closeResult(); startNew(state.mode) });
+    els.toMenuBtn.addEventListener('click', closeResult);
+
+    window.addEventListener('resize', renderGrid);
   }
   createUI();
 })()
