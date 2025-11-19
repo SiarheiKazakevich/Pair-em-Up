@@ -599,6 +599,26 @@
   function closeResult() {
     els.resultModal.style.display = 'none';
   }
+  /* ---------- Таймер ---------- */
+  function startTimer() {
+    if (state.timerInterval) clearInterval(state.timerInterval);
+    state.startTime = Date.now() - (state.elapsedSeconds * 1000);
+    state.timerInterval = setInterval(() => {
+      state.elapsedSeconds = Math.floor((Date.now() - state.startTime) / 1000);
+      els.timer.textContent = formatTime(state.elapsedSeconds);
+    }, 500);
+  }
+  function stopTimer() {
+    if (state.timerInterval) clearInterval(state.timerInterval);
+    state.timerInterval = null;
+  }
+  function formatTime(s) {
+    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
+  }
+
+
 
 
   createUI();
