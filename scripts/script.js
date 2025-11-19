@@ -211,16 +211,16 @@
     const arr = [];
     if (mode === 'classic') {
       const seq = [];
-      for (let i = 1; i <= 19; i++) if (i !== 0) seq.push(i);
+      for (let i = 1; i <= 9; i++) if (i !== 0) seq.push(i);
       let base = [];
-      for (let i = 1; i <= 19; i++) base.push(i);
+      for (let i = 1; i <= 9; i++) base.push(i);
       while (base.length < START_COUNT) {
         for (let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
       }
       for (const v of base.slice(0, START_COUNT)) arr.push(v)
     } else if (mode === 'random') {
       let base = [];
-      for (let i = 1; i <= 19; i++) base.push(i);
+      for (let i = 1; i <= 9; i++) base.push(i);
       while (base.length < START_COUNT) {
         for (let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
       }
@@ -617,20 +617,20 @@
     const ss = String(s % 60).padStart(2, '0');
     return `${mm}:${ss}`;
   }
-   /* ---------- Сохранение/загрузка ---------- */
-function saveToStorage() {
-   const payload = {
+  /* ---------- Сохранение/загрузка ---------- */
+  function saveToStorage() {
+    const payload = {
       state,
       savedAt: Date.now(),
     };
-      try {
+    try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
       showToast('Game saved.');
     } catch (e) {
       console.error(e);
       showToast('Save failed.');
     }
-}
+  }
   function saveToStorageAuto() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ state, savedAt: Date.now() }));
@@ -642,7 +642,7 @@ function saveToStorage() {
       if (!raw) { showToast('No saved game'); return; }
       const payload = JSON.parse(raw);
       state = payload.state || state;
-     
+
       selected = [];
       startTimer();
       renderGrid();
@@ -653,5 +653,52 @@ function saveToStorage() {
     }
   }
 
+  /* ---------- Результаты игр (история) ---------- */
+  function saveResult(result) {
+    // store last 5 results
+    const key = STORAGE_KEY + '_results';
+    let arr = [];
+    try {
+      arr = JSON.parse(localStorage.getItem(key) || '[]');
+      arr.unshift(result);
+      if (arr.length > 5) arr = arr.slice(0, 5);
+      localStorage.setItem(key, JSON.stringify(arr));
+    } catch (e) { console.error(e); }
+  }
+  /* ---------- Старт / рестарт игры ---------- */
+  function startNew(mode = 'classic') {
+    stopTimer();
+    state = {
+      ...state,
+      mode,
+      grid: [],
+      score: 0,
+      startTime: null,
+      elapsedSeconds: 0,
+      timerInterval: null,
+      tools: { addUsed: 0, shuffleUsed: 0, eraserUsed: 0 },
+      history: [],
+      movesCount: 0,
+      savedAt: null,
+    };
+    const arr = generateInitialArray(mode);
+    initGridFromArray(arr);
+    // push initial snapshot
+    pushHistory('start');
+    startTimer();
+    renderGrid();
+  }
+  /* ---------- Вспомогательные ---------- */
+  function shuffleArrayInPlace(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } }
+  /* ---------- Автозапуск интерфейса ---------- */
+
+
+  // expose some functions for console debug (dev only)
+  window.PEU = {
+    state, startNew, saveToStorage, loadFromStorage, countAvailableMoves, showHint
+  };
+
+
   createUI();
+  startNew('classic');
 })()
