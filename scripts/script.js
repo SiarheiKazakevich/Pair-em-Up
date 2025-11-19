@@ -23,6 +23,8 @@
     history: [],
     movesCount: 0,
     savedAt: null,
+    flatSequence: [],
+    seqPointer: 0,
   };
   const randInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
   const uid = (() => { let i = 0; return () => ++i })();
@@ -207,38 +209,97 @@
   }
 
 
-  function generateInitialArray(mode) {
-    const arr = [];
-    if (mode === 'classic') {
-      const seq = [];
-      for (let i = 1; i <= 9; i++) if (i !== 0) seq.push(i);
-      let base = [];
-      for (let i = 1; i <= 9; i++) base.push(i);
-      while (base.length < START_COUNT) {
-        for (let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
-      }
-      for (const v of base.slice(0, START_COUNT)) arr.push(v)
-    } else if (mode === 'random') {
-      let base = [];
-      for (let i = 1; i <= 9; i++) base.push(i);
-      while (base.length < START_COUNT) {
-        for (let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
-      }
-      //shuffle
-      for (let i = base.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [base[i], base[j]] = [base[j], base[i]];
-      }
-      arr.push(...base.slice(0, START_COUNT));
-    } else if (mode === 'chaotic') {
-      for (let i = 0; i < START_COUNT; i++) arr.push(randInt(1, 9));
+  function buildNumberSequence() {
+    // build numbers 1..19, exclude any number that contains digit '0'
+    const numbers = [];
+    for (let n = 1; n <= 19; n++) {
+      const s = String(n);
+      if (s.includes('0')) continue; // exclude 10
+      numbers.push(n);
     }
+    return numbers;
+  }
+  function flattenNumbersToDigits(numbers) {
+    const flat = [];
+    for (const n of numbers) {
+      const digits = String(n).split('').map(d => parseInt(d, 10));
+      // exclude any digit 0 (shouldn't happen because we removed numbers with 0)
+      for (const d of digits) if (d !== 0) flat.push(d);
+    }
+    return flat;
+  }
+
+
+
+
+
+  function generateInitialArray(mode) {
+    if (mode === 'chaotic') {
+      // exactly 27 random digits 1..9
+      const arr = [];
+      for (let i = 0; i < START_COUNT; i++) arr.push(randInt(1, 9));
+      state.flatSequence = []; state.seqPointer = 0; // not used in chaotic
+      return arr;
+    }
+
+    const numbers = buildNumberSequence();
+    let numbersOrder = numbers.slice();
+    if (mode === 'random') {
+      // shuffle the number order before flattening to digits
+      for (let i = numbersOrder.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [numbersOrder[i], numbersOrder[j]] = [numbersOrder[j], numbersOrder[i]];
+      }
+    }
+
+    const flat = flattenNumbersToDigits(numbersOrder);
+
+    while (flat.length < START_COUNT) {
+      flat.push(...flattenNumbersToDigits(numbersOrder));
+      if (flat.length > 1000) break;
+    }
+    const arr = flat.slice(0, START_COUNT);
+
+    state.flatSequence = flattenNumbersToDigits(mode === 'classic' ? buildNumberSequence() : numbersOrder);
+
+    state.seqPointer = START_COUNT;
     return arr;
   }
 
   function initGridFromArray(arr) {
     state.grid = arr.map(v => ({ value: v, id: uid() }));
   }
+
+  /*
+    function generateInitialArray(mode) {
+      const arr = [];
+      if (mode === 'classic') {
+        const seq = [];
+        for (let i = 1; i <= 9; i++) if (i !== 0) seq.push(i);
+        let base = [];
+        for (let i = 1; i <= 9; i++) base.push(i);
+        while (base.length < START_COUNT) {
+          for (let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
+        }
+        for (const v of base.slice(0, START_COUNT)) arr.push(v)
+      } else if (mode === 'random') {
+        let base = [];
+        for (let i = 1; i <= 9; i++) base.push(i);
+        while (base.length < START_COUNT) {
+          for (let i = 1; i <= 9 && base.length < START_COUNT; i++) base.push(i);
+        }
+        //shuffle
+        for (let i = base.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [base[i], base[j]] = [base[j], base[i]];
+        }
+        arr.push(...base.slice(0, START_COUNT));
+      } else if (mode === 'chaotic') {
+        for (let i = 0; i < START_COUNT; i++) arr.push(randInt(1, 9));
+      }
+      return arr;
+    }*/
+
 
   /*------рендеринг--------*/
   let selected = [];
@@ -361,7 +422,7 @@
   }
 
   function applyPairRemoval(i, j, points) {
-    pushHistory();
+
     state.grid[i].value = null;
     state.grid[j].value = null;
     state.score += points;
@@ -413,34 +474,34 @@
         }
       }
     }
-
-    function showToast(msg) {
-      const div = document.createElement('div');
-      div.textContent = msg;
-      div.style.position = 'fixed';
-      div.style.bottom = '20px';
-      div.style.left = '50%';
-      div.style.transform = 'translateX(-50%)';
-      div.style.background = 'var(--accent)';
-      div.style.color = '#000';
-      div.style.padding = '8px 14px';
-      div.style.borderRadius = '8px';
-      div.style.fontWeight = '600';
-      div.style.zIndex = '9999';
-      div.style.opacity = '0';
-      div.style.transition = 'opacity .3s';
-
-      document.body.appendChild(div);
-      requestAnimationFrame(() => (div.style.opacity = '1'));
-
-      setTimeout(() => {
-        div.style.opacity = '0';
-        setTimeout(() => div.remove(), 300);
-      }, 1500);
-
-    }
-    showToast('No available moves found.');
   }
+  function showToast(msg) {
+    const div = document.createElement('div');
+    div.textContent = msg;
+    div.style.position = 'fixed';
+    div.style.bottom = '20px';
+    div.style.left = '50%';
+    div.style.transform = 'translateX(-50%)';
+    div.style.background = 'var(--accent)';
+    div.style.color = '#000';
+    div.style.padding = '8px 14px';
+    div.style.borderRadius = '8px';
+    div.style.fontWeight = '600';
+    div.style.zIndex = '9999';
+    div.style.opacity = '0';
+    div.style.transition = 'opacity .3s';
+
+    document.body.appendChild(div);
+    requestAnimationFrame(() => (div.style.opacity = '1'));
+
+    setTimeout(() => {
+      div.style.opacity = '0';
+      setTimeout(() => div.remove(), 300);
+    }, 1500);
+
+  }
+  showToast('No available moves found.');
+
   function snapshotState(summary) {
     const snap = {
       grid: state.grid.map(c => ({ value: c.value, id: c.id })),
@@ -470,7 +531,7 @@
     renderGrid();
   }
   function addNumbersTool() {
-    if (state.tools.add >= MAX_ADD_NUMBERS) { showToast('Add Numbers: no usages left'); return; }
+    if (state.tools.addUsed >= MAX_ADD_NUMBERS) { showToast('Add Numbers: no usages left'); return; }
     pushHistory('add numbers');
     const currentCount = state.grid.filter(c => c.value !== null).length;
     const toAdd = (() => {
@@ -508,7 +569,7 @@
     if (state.tools.shuffleUsed >= MAX_SHUFFLES) { showToast('Shuffle: no usages left'); return; }
     pushHistory('shuffle');
     const value = state.grid.map(c => c.value);
-    const valuesToShuffle = values.filter(v => v !== null);
+    const valuesToShuffle = value.filter(v => v !== null);
     for (let i = valuesToShuffle.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [valuesToShuffle[i], valuesToShuffle[j]] = [valuesToShuffle[j], valuesToShuffle[i]];
@@ -555,13 +616,7 @@
       }
     });
   }
-  function eraserTool() {
-    if (state.tools.eraserUsed >= MAX_ERASER) { showToast('Eraser: no usages left'); return; }
-    const indexStr = askIndexWithToast((index) => {
-      eraseCell(index);
-    });
-    if (indexStr === null) return;
-    const idx = parseInt(indexStr, 10);
+  function eraseCell(idx) {
     if (isNaN(idx) || idx < 0 || idx >= state.grid.length) { showToast('Invalid index'); return; }
     if (state.grid[idx].value === null) { showToast('Cell is already empty'); return; }
     pushHistory('eraser');
@@ -570,6 +625,22 @@
     saveToStorageAuto();
     renderGrid();
     checkGameEnd();
+  }
+  function eraserTool() {
+    if (state.tools.eraserUsed >= MAX_ERASER) { showToast('Eraser: no usages left'); return; }
+    const indexStr = askIndexWithToast((index) => {
+      eraseCell(index);
+    });
+    /*if (indexStr === null) return;
+    const idx = parseInt(indexStr, 10);
+    if (isNaN(idx) || idx < 0 || idx >= state.grid.length) { showToast('Invalid index'); return; }
+    if (state.grid[idx].value === null) { showToast('Cell is already empty'); return; }
+    pushHistory('eraser');
+    state.grid[idx].value = null;
+    state.tools.eraserUsed += 1;
+    saveToStorageAuto();
+    renderGrid();
+    checkGameEnd();*/
   }
   function checkGameEnd() {
     if (state.score >= TARGET_SCORE) {
