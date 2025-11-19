@@ -617,9 +617,41 @@
     const ss = String(s % 60).padStart(2, '0');
     return `${mm}:${ss}`;
   }
-
-
-
+   /* ---------- Сохранение/загрузка ---------- */
+function saveToStorage() {
+   const payload = {
+      state,
+      savedAt: Date.now(),
+    };
+      try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      showToast('Game saved.');
+    } catch (e) {
+      console.error(e);
+      showToast('Save failed.');
+    }
+}
+  function saveToStorageAuto() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ state, savedAt: Date.now() }));
+    } catch (e) { }
+  }
+  function loadFromStorage() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) { showToast('No saved game'); return; }
+      const payload = JSON.parse(raw);
+      state = payload.state || state;
+     
+      selected = [];
+      startTimer();
+      renderGrid();
+      showToast('Game loaded.');
+    } catch (e) {
+      console.error(e);
+      showToast('Load failed.');
+    }
+  }
 
   createUI();
 })()
