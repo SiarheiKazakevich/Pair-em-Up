@@ -571,8 +571,34 @@
     renderGrid();
     checkGameEnd();
   }
-
-
+  function checkGameEnd() {
+    if (state.score >= TARGET_SCORE) {
+      endGame(true, 'Target reached!');
+      return;
+    }
+    const moves = countAvailableMoves();
+    const toolsLeft = (MAX_ADD_NUMBERS - state.tools.addUsed) + (MAX_SHUFFLES - state.tools.shuffleUsed) + (MAX_ERASER - state.tools.eraserUsed);
+    if (moves === 0 && toolsLeft === 0) {
+      endGame(false, 'No moves left and all tools used.');
+      return;
+    }
+    const rows = Math.ceil(state.grid.length / COLS);
+    if (rows > MAX_LINES) {
+      endGame(false, 'Grid size limit reached.');
+      return;
+    }
+  }
+  function endGame(won, message) {
+    stopTimer();
+    els.resultModal.style.display = 'flex';
+    els.resultTitle.textContent = won ? 'You win!' : 'Game over';
+    els.resultText.innerHTML = `<div>${message}</div><div>Score: ${state.score}</div><div>Time: ${formatTime(state.elapsedSeconds)}</div>`;
+    // save result to results list
+    saveResult({ mode: state.mode, score: state.score, won, time: state.elapsedSeconds, moves: state.movesCount });
+  }
+  function closeResult() {
+    els.resultModal.style.display = 'none';
+  }
 
 
   createUI();
