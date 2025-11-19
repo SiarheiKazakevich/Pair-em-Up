@@ -487,10 +487,10 @@
       if (state.mode === 'chaotic') v = randInt(1, 9);
       else if (state.mode === 'random') {
 
-        v = randInt(1, 19);
+        v = randInt(1, 9);
         if (v === 0) v = 1;
       } else {
-        v = randInt(1, 19);
+        v = randInt(1, 9);
       }
       state.grid.push({ value: v, id: uid() });
     }
